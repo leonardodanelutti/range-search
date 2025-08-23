@@ -1,0 +1,26 @@
+# Build and CMake files
+/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Executables
+range_search
+/tests/tests
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*.vscode/
+
+# Logs
+*.log
+
+# Other
+*.user
+*.out
