@@ -13,25 +13,54 @@ template<int D>
 class KDTree {
 public:
     struct Node {
-        Point<D> point;
+        virtual ~Node() = default;
+        virtual bool is_leaf() const = 0;
+    };
+    
+    struct InternalNode : public Node {
+        int split_dimension;
+        double split_coordinate;
         std::unique_ptr<Node> left;
         std::unique_ptr<Node> right;
-        // Keep track of the current dimension
-        int split_dimension;
         
-        Node(Point<D> p, int dim) : point(p), split_dimension(dim) {}
+        InternalNode(int dim, double coord) : split_dimension(dim), split_coordinate(coord) {}
+        
+        bool is_leaf() const override { return false; }
+    };
+    
+    struct LeafNode : public Node {
+        Point<D> point;
+        
+        LeafNode(Point<D> pt) : point(pt) {}
+        
+        bool is_leaf() const override { return true; }
     };
 
 private:
     std::unique_ptr<Node> root;
     size_t size_;
     
+    // Helper function to check if a point is within a range
+    bool is_point_in_range(const Point<D>& point, const Iso_box<D>& range) const {
+        for (int i = 0; i < D; ++i) {
+            auto coord = point.cartesian(i);
+            if (coord < ::min_coord<D>(range, i) || coord > ::max_coord<D>(range, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
     // Build the KD-Tree from a set of points
     std::unique_ptr<Node> build_tree(std::vector<Point<D>>& points, int depth, int start, int end) {
         if (start >= end) return nullptr;
         
+        // If we have only one point, create a leaf
+        if (end - start == 1) {
+            return std::make_unique<LeafNode>(points[start]);
+        }
+        
         int dimension = depth % D;
-
         int median = start + (end - start) / 2;
         
         // Use nth_element to find the median point in the current dimension
@@ -40,52 +69,55 @@ private:
                              return a.cartesian(dimension) < b.cartesian(dimension);
                          });
 
-        // Create node and recursively build subtrees
-        std::unique_ptr<Node> node = std::make_unique<Node>(points[median], dimension);
+        // Get the split coordinate from the median point
+        double split_coord = CGAL::to_double(points[median].cartesian(dimension));
         
-        node->left = build_tree(points, depth + 1, start, median);
-        node->right = build_tree(points, depth + 1, median + 1, end);
+        // Create internal node with split information
+        auto internal_node = std::make_unique<InternalNode>(dimension, split_coord);
         
-        return node;
+        // Build subtrees recursively
+        internal_node->left = build_tree(points, depth + 1, start, median);
+        internal_node->right = build_tree(points, depth + 1, median, end);
+        
+        return internal_node;
     }
     
     // Helper function for range search
     void range_search(Node* node, const Iso_box<D>& range, std::vector<Point<D>>& result) const {
         if (!node) return;
         
-        // Check if current point is in range
-        bool in_range = true;
-        for (int i = 0; i < D; ++i) {
-            auto coord = node->point.cartesian(i);
-            auto min_val = ::min_coord<D>(range, i);
-            auto max_val = ::max_coord<D>(range, i);
-            if (coord < min_val || coord > max_val) {
-                in_range = false;
-                break;
+        if (node->is_leaf()) {
+            // This is a leaf node, check the single point in it
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            const auto& point = leaf->point;
+            
+            // Check if current point is in range
+            if (is_point_in_range(point, range)) {
+                result.push_back(point);
             }
-        }
-        
-        if (in_range) {
-            result.push_back(node->point);
-        }
-        
-        // Recursively search children
-        int dim = node->split_dimension;
-        auto split_value = node->point.cartesian(dim);
-        
-        // Search left subtree if range overlaps
-        if (::min_coord<D>(range, dim) <= split_value) {
-            range_search(node->left.get(), range, result);
-        }
-        
-        // Search right subtree if range overlaps
-        if (::max_coord<D>(range, dim) >= split_value) {
-            range_search(node->right.get(), range, result);
+        } else {
+            // This is an internal node, use split coordinate to decide which subtrees to search
+            InternalNode* internal = static_cast<InternalNode*>(node);
+            
+            int dim = internal->split_dimension;
+            double split_value = internal->split_coordinate;
+            
+            // Search left subtree if range overlaps
+            auto min_val = CGAL::to_double(::min_coord<D>(range, dim));
+            if (min_val <= split_value) {
+                range_search(internal->left.get(), range, result);
+            }
+            
+            // Search right subtree if range overlaps
+            auto max_val = CGAL::to_double(::max_coord<D>(range, dim));
+            if (max_val >= split_value) {
+                range_search(internal->right.get(), range, result);
+            }
         }
     }
 
 public:
-    // Default constructor - creates empty tree
+    // Empty tree
     KDTree(): size_(0) {}
     
     // Constructor that builds tree from vector of points
@@ -109,4 +141,35 @@ public:
     
     // Check if tree is empty
     bool empty() const { return size_ == 0; }
+    
+    // Debug function to print tree structure
+    void print_tree_structure(Node* node = nullptr, int depth = 0) const {
+        if (node == nullptr) node = root.get();
+        if (!node) return;
+        
+        std::string indent(depth * 2, ' ');
+        
+        if (node->is_leaf()) {
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            std::cout << indent << "Leaf: (";
+            for (int i = 0; i < D; ++i) {
+                if (i > 0) std::cout << ", ";
+                std::cout << CGAL::to_double(leaf->point.cartesian(i));
+            }
+            std::cout << ")" << std::endl;
+        } else {
+            InternalNode* internal = static_cast<InternalNode*>(node);
+            std::cout << indent << "Internal: dim=" << internal->split_dimension 
+                      << " split=" << internal->split_coordinate << std::endl;
+            
+            if (internal->left) {
+                std::cout << indent << "Left:" << std::endl;
+                print_tree_structure(internal->left.get(), depth + 1);
+            }
+            if (internal->right) {
+                std::cout << indent << "Right:" << std::endl;
+                print_tree_structure(internal->right.get(), depth + 1);
+            }
+        }
+    }
 };
