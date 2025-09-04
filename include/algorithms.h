@@ -142,6 +142,9 @@ public:
     // Check if tree is empty
     bool empty() const { return size_ == 0; }
     
+    // Get root node for visualization purposes
+    Node* getRoot() const { return root.get(); }
+    
     // Debug function to print tree structure
     void print_tree_structure(Node* node = nullptr, int depth = 0) const {
         if (node == nullptr) node = root.get();
