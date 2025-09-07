@@ -8,9 +8,18 @@
 #include <vector>
 #include <algorithm>
 
+template<int D>
+class OrthogonalRangeSearchAlgorithm {
+public:
+    virtual ~OrthogonalRangeSearchAlgorithm() = default;
+    virtual std::vector<Point<D>> range_search(const Iso_box<D>& range) const = 0;
+    virtual size_t size() const = 0;
+    virtual bool empty() const = 0;
+};
+
 // KD-Tree
 template<int D>
-class KDTree {
+class KDTree : public OrthogonalRangeSearchAlgorithm<D> {
 public:
     struct Node {
         virtual ~Node() = default;
@@ -19,11 +28,11 @@ public:
     
     struct InternalNode : public Node {
         int split_dimension;
-        double split_coordinate;
+        typename Kernel<D>::FT split_coordinate;
         std::unique_ptr<Node> left;
         std::unique_ptr<Node> right;
         
-        InternalNode(int dim, double coord) : split_dimension(dim), split_coordinate(coord) {}
+        InternalNode(int dim, typename Kernel<D>::FT coord) : split_dimension(dim), split_coordinate(coord) {}
         
         bool is_leaf() const override { return false; }
     };
@@ -70,7 +79,7 @@ private:
                          });
 
         // Get the split coordinate from the median point
-        double split_coord = CGAL::to_double(points[median].cartesian(dimension));
+        auto split_coord = points[median].cartesian(dimension);
         
         // Create internal node with split information
         auto internal_node = std::make_unique<InternalNode>(dimension, split_coord);
@@ -87,7 +96,6 @@ private:
         if (!node) return;
         
         if (node->is_leaf()) {
-            // This is a leaf node, check the single point in it
             LeafNode* leaf = static_cast<LeafNode*>(node);
             const auto& point = leaf->point;
             
@@ -100,16 +108,16 @@ private:
             InternalNode* internal = static_cast<InternalNode*>(node);
             
             int dim = internal->split_dimension;
-            double split_value = internal->split_coordinate;
+            auto split_value = internal->split_coordinate;
             
             // Search left subtree if range overlaps
-            auto min_val = CGAL::to_double(::min_coord<D>(range, dim));
+            auto min_val = ::min_coord<D>(range, dim);
             if (min_val <= split_value) {
                 range_search(internal->left.get(), range, result);
             }
             
             // Search right subtree if range overlaps
-            auto max_val = CGAL::to_double(::max_coord<D>(range, dim));
+            auto max_val = ::max_coord<D>(range, dim);
             if (max_val >= split_value) {
                 range_search(internal->right.get(), range, result);
             }
@@ -163,7 +171,7 @@ public:
         } else {
             InternalNode* internal = static_cast<InternalNode*>(node);
             std::cout << indent << "Internal: dim=" << internal->split_dimension 
-                      << " split=" << internal->split_coordinate << std::endl;
+                      << " split=" << CGAL::to_double(internal->split_coordinate) << std::endl;
             
             if (internal->left) {
                 std::cout << indent << "Left:" << std::endl;

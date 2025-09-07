@@ -117,7 +117,7 @@ void RangeSearchWidget::drawTreePartitions(QPainter& painter, KDTree<2>::Node* n
     
     KDTree<2>::InternalNode* internal = static_cast<KDTree<2>::InternalNode*>(node);
     int dimension = internal->split_dimension;
-    double splitValue = internal->split_coordinate;
+    double splitValue = CGAL::to_double(internal->split_coordinate);
     
     if (dimension == 0) { // X
         if (splitValue >= minX && splitValue <= maxX) {
