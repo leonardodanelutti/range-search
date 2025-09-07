@@ -22,13 +22,9 @@ RangeSearchWidget::RangeSearchWidget(QWidget* parent)
 }
 
 void RangeSearchWidget::paintEvent(QPaintEvent* event) {
+    // Init
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    
-    // Clear background
     painter.fillRect(rect(), Qt::white);
-    
-    // Set up coordinate system
     painter.save();
     
     // Calculate scale to fit world coordinates into widget
@@ -47,23 +43,10 @@ void RangeSearchWidget::paintEvent(QPaintEvent* event) {
     QPoint topLeft = worldToScreen(QPointF(0, WORLD_SIZE));
     QPoint bottomRight = worldToScreen(QPointF(WORLD_SIZE, 0));
     
-    // Draw the four boundary lines to complete the rectangle
-    painter.drawLine(origin, xEnd);        // Bottom edge (left to right)
-    painter.drawLine(origin, yEnd);        // Left edge (bottom to top)
-    painter.drawLine(topLeft, topRight);   // Top edge (left to right)
-    painter.drawLine(bottomRight, topRight); // Right edge (bottom to top)
-    
-    // Draw grid
-    painter.setPen(QPen(Qt::lightGray, 0.5, Qt::DotLine));
-    for (int i = 1; i < WORLD_SIZE; ++i) {
-        QPoint vLine1 = worldToScreen(QPointF(i, 0));
-        QPoint vLine2 = worldToScreen(QPointF(i, WORLD_SIZE));
-        painter.drawLine(vLine1, vLine2);
-        
-        QPoint hLine1 = worldToScreen(QPointF(0, i));
-        QPoint hLine2 = worldToScreen(QPointF(WORLD_SIZE, i));
-        painter.drawLine(hLine1, hLine2);
-    }
+    painter.drawLine(origin, xEnd);
+    painter.drawLine(origin, yEnd);
+    painter.drawLine(topLeft, topRight);
+    painter.drawLine(bottomRight, topRight);
     
     // Draw KD-tree partitions if enabled
     if (showTreePartitions_ && kdTree_ && !kdTree_->empty()) {
@@ -95,7 +78,6 @@ void RangeSearchWidget::drawPoints(QPainter& painter) {
 }
 
 void RangeSearchWidget::drawQueryRegion(QPainter& painter) {
-    // Draw the query rectangle
     painter.setPen(QPen(Qt::red, 2));
     painter.setBrush(QBrush(Qt::red, Qt::Dense7Pattern));
     
@@ -105,7 +87,7 @@ void RangeSearchWidget::drawQueryRegion(QPainter& painter) {
     
     painter.drawRect(screenRect);
     
-    // Draw resize handle at bottom-right corner
+    // Draw resize handle
     painter.setBrush(Qt::red);
     painter.drawEllipse(bottomRight.x() - 4, bottomRight.y() - 4, 8, 8);
 }
@@ -130,20 +112,19 @@ void RangeSearchWidget::drawKDTreePartitions(QPainter& painter) {
 }
 
 void RangeSearchWidget::drawTreePartitions(QPainter& painter, KDTree<2>::Node* node,
-                                         double minX, double minY, double maxX, double maxY, int depth) const {
-    if (!node || node->is_leaf()) return;
+                                           double minX, double minY, double maxX, double maxY, int depth) const {
+    if (node->is_leaf()) return;
     
-    auto* internal = static_cast<KDTree<2>::InternalNode*>(node);
+    KDTree<2>::InternalNode* internal = static_cast<KDTree<2>::InternalNode*>(node);
     int dimension = internal->split_dimension;
     double splitValue = internal->split_coordinate;
     
-    if (dimension == 0) { // X dimension split
+    if (dimension == 0) { // X
         if (splitValue >= minX && splitValue <= maxX) {
             QPoint start = worldToScreen(QPointF(splitValue, minY));
             QPoint end = worldToScreen(QPointF(splitValue, maxY));
             painter.drawLine(start, end);
             
-            // Recursively draw partitions for children
             if (internal->left) {
                 drawTreePartitions(painter, internal->left.get(), minX, minY, splitValue, maxY, depth + 1);
             }
@@ -151,13 +132,12 @@ void RangeSearchWidget::drawTreePartitions(QPainter& painter, KDTree<2>::Node* n
                 drawTreePartitions(painter, internal->right.get(), splitValue, minY, maxX, maxY, depth + 1);
             }
         }
-    } else { // Y dimension split
+    } else { // Y
         if (splitValue >= minY && splitValue <= maxY) {
             QPoint start = worldToScreen(QPointF(minX, splitValue));
             QPoint end = worldToScreen(QPointF(maxX, splitValue));
             painter.drawLine(start, end);
             
-            // Recursively draw partitions for children
             if (internal->left) {
                 drawTreePartitions(painter, internal->left.get(), minX, minY, maxX, splitValue, depth + 1);
             }
@@ -198,12 +178,6 @@ void RangeSearchWidget::mousePressEvent(QMouseEvent* event) {
         dragging_ = true;
         dragStart_ = worldPos;
         originalTopLeft_ = queryRegion_.topLeft();
-    }
-    // Otherwise, create new query region
-    else {
-        queryRegion_ = QRectF(worldPos, QSizeF(1.0, 1.0));
-        updateSearch();
-        update();
     }
 }
 
@@ -253,7 +227,7 @@ void RangeSearchWidget::generateRandomPoints() {
     for (int i = 0; i < pointCount_; ++i) {
         double x = dis(gen);
         double y = dis(gen);
-        points_.emplace_back(x, y);
+        points_.push_back(Point2D(x, y));
     }
     
     // Rebuild KD-tree
@@ -316,10 +290,8 @@ RangeSearchMainWindow::RangeSearchMainWindow(QWidget* parent)
     controlLayout->addWidget(showTreeCheckBox_);
     controlLayout->addStretch();
     
-    // Create visualization widget
     visualizationWidget_ = new RangeSearchWidget;
     
-    // Add to main layout
     mainLayout->addLayout(controlLayout);
     mainLayout->addWidget(visualizationWidget_);
     
