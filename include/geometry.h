@@ -43,3 +43,33 @@ auto max_coord(const Iso_box<D>& box, int dimension) {
     auto max_pt = kernel.construct_max_vertex_d_object()(box);
     return max_pt.cartesian(dimension);
 }
+
+// Get the range (min, max) for a specific dimension of a D-dimensional box
+template<int D>
+std::pair<typename Kernel<D>::FT, typename Kernel<D>::FT> get_dimension_range(const Iso_box<D>& box, int dimension) {
+    auto min_val = ::min_coord<D>(box, dimension);
+    auto max_val = ::max_coord<D>(box, dimension);
+    return std::make_pair(min_val, max_val);
+}
+
+// Helper function to check if a point is within a range
+template<int D>
+bool is_point_in_range(const Point<D>& point, const Iso_box<D>& range) {
+    for (int i = 0; i < D; ++i) {
+        auto coord = point.cartesian(i);
+        if (coord < ::min_coord<D>(range, i) || coord > ::max_coord<D>(range, i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Helper function to create Iso_box from coordinate ranges more concisely
+template<int D>
+Iso_box<D> make_iso_box(std::initializer_list<double> min_coords, std::initializer_list<double> max_coords) {
+    Kernel<D> kernel;
+    return kernel.construct_iso_box_d_object()(
+        Point<D>(min_coords.begin(), min_coords.end()),
+        Point<D>(max_coords.begin(), max_coords.end())
+    );
+}
