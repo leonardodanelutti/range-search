@@ -255,17 +255,43 @@ private:
         while (node && !node->is_leaf()) {
             InternalNode* internal = static_cast<InternalNode*>(node);
             auto x_v = internal->split_value;
-            if (max_val <= x_v || min_val >= x_v) {
-                if (max_val <= x_v) {
-                    node = internal->left.get();
-                } else {
-                    node = internal->right.get();
-                }
+            if (max_val <= x_v) {
+                node = internal->left.get();
+            } else if (min_val >= x_v) {
+                node = internal->right.get();
             } else {
                 break;
             }
         }
         return node;
+    }
+
+    // Helper to check and report leaf node if in range
+    bool check_and_report_leaf(Node* node, const Iso_box<D>& range, std::vector<Point<D>>& result) const {
+        if (node && node->is_leaf()) {
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            if (::is_point_in_range<D>(leaf->point, range)) {
+                result.push_back(leaf->point);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // Helper to search in the associated structure 
+    void search_assoc(Node* subtree, const Iso_box<D>& range, std::vector<Point<D>>& result) const {
+        if (!subtree) return;
+        
+        if (!check_and_report_leaf(subtree, range, result)) {
+            InternalNode* subtree_internal = static_cast<InternalNode*>(subtree);
+            if (subtree_internal->dimension < D - 1 && subtree_internal->assoc) {
+                auto assoc_results = subtree_internal->assoc->range_search(range);
+                result.insert(result.end(), assoc_results.begin(), assoc_results.end());
+            } else {
+                // Last dimension, search directly in subtree
+                range_search_helper(subtree, range, result);
+            }
+        }
     }
 
     // Helper function for range search
@@ -279,78 +305,40 @@ private:
         // Find split node
         Node* v_split = find_split_node(node, min_val, max_val);
 
-        if (v_split->is_leaf()) {
-            // Report the point if in range
-            LeafNode* leaf = static_cast<LeafNode*>(v_split);
-            if (::is_point_in_range<D>(leaf->point, range)) {
-                result.push_back(leaf->point);
-            }
-        } else {
-            InternalNode* internal = static_cast<InternalNode*>(v_split);
-            auto split_value = internal->split_value;
-            
-            // Follow the path to min_val
-            Node* v = internal->left.get();
-            while (v && !v->is_leaf()) {
-                InternalNode* v_internal = static_cast<InternalNode*>(v);
-                if (min_val <= v_internal->split_value) {
-                    // Call the query on associated structure of right child
-                    if (v_internal->right) {
-                        if (v_internal->dimension < D - 1) {
-                            InternalNode* right_internal = static_cast<InternalNode*>(v_internal->right.get());
-                            if (right_internal->assoc) {
-                                auto assoc_results = right_internal->assoc->range_search(range);
-                                result.insert(result.end(), assoc_results.begin(), assoc_results.end());
-                            }
-                        } else {
-                            // Last dimension, search directly in right subtree
-                            range_search_helper(v_internal->right.get(), range, result);
-                        }
-                    }
-                    v = v_internal->left.get();
-                } else {
-                    v = v_internal->right.get();
-                }
-            }
-            // Check if the point stored at v must be reported
-            if (v && v->is_leaf()) {
-                LeafNode* leaf = static_cast<LeafNode*>(v);
-                if (::is_point_in_range<D>(leaf->point, range)) {
-                    result.push_back(leaf->point);
-                }
-            }
+        if (check_and_report_leaf(v_split, range, result)) {
+            return;
+        }
 
-            // Follow the path to max_val
-            v = internal->right.get();
-            while (v && !v->is_leaf()) {
-                InternalNode* v_internal = static_cast<InternalNode*>(v);
-                if (max_val >= v_internal->split_value) {
-                    // Call the query on associated structure of left child
-                    if (v_internal->left) {
-                        if (v_internal->dimension < D - 1) {
-                            InternalNode* left_internal = static_cast<InternalNode*>(v_internal->left.get());
-                            if (left_internal->assoc) {
-                                auto assoc_results = left_internal->assoc->range_search(range);
-                                result.insert(result.end(), assoc_results.begin(), assoc_results.end());
-                            }
-                        } else {
-                            // Last dimension, search directly in left subtree
-                            range_search_helper(v_internal->left.get(), range, result);
-                        }
-                    }
-                    v = v_internal->right.get();
-                } else {
-                    v = v_internal->left.get();
-                }
-            }
-            // Check if the point stored at v must be reported
-            if (v && v->is_leaf()) {
-                LeafNode* leaf = static_cast<LeafNode*>(v);
-                if (::is_point_in_range<D>(leaf->point, range)) {
-                    result.push_back(leaf->point);
-                }
+        InternalNode* internal = static_cast<InternalNode*>(v_split);
+        auto split_value = internal->split_value;
+        
+        // Follow the path to min_val
+        Node* v = internal->left.get();
+        while (v && !v->is_leaf()) {
+            InternalNode* v_internal = static_cast<InternalNode*>(v);
+            if (min_val <= v_internal->split_value) {
+                // Call the query on associated structure of right child
+                search_assoc(v_internal->right.get(), range, result);
+                v = v_internal->left.get();
+            } else {
+                v = v_internal->right.get();
             }
         }
+        check_and_report_leaf(v, range, result);
+
+        // Follow the path to max_val
+        v = internal->right.get();
+        while (v && !v->is_leaf()) {
+            InternalNode* v_internal = static_cast<InternalNode*>(v);
+            if (max_val >= v_internal->split_value) {
+                // Call the query on associated structure of left child
+                search_assoc(v_internal->left.get(), range, result);
+                v = v_internal->right.get();
+            } else {
+                v = v_internal->left.get();
+            }
+        }
+        check_and_report_leaf(v, range, result);
     }
 
 public:
