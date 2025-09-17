@@ -16,6 +16,7 @@ public:
     virtual std::vector<Point<D>> range_search(const Iso_box<D>& range) const = 0;
     virtual size_t size() const = 0;
     virtual bool empty() const = 0;
+    virtual size_t memory_usage() const = 0;  // Memory usage in bytes
 };
 
 // KD-Tree
@@ -140,6 +141,28 @@ public:
     // Check if tree is empty
     bool empty() const { return size_ == 0; }
     
+    // Calculate memory usage of the tree
+    size_t memory_usage() const override {
+        return calculate_node_memory(root.get()) + sizeof(*this);
+    }
+    
+private:
+    // Helper function to calculate memory usage of nodes
+    size_t calculate_node_memory(Node* node) const {
+        if (!node) return 0;
+        
+        if (node->is_leaf()) {
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            return sizeof(LeafNode);
+        } else {
+            InternalNode* internal = static_cast<InternalNode*>(node);
+            return sizeof(InternalNode) + 
+                   calculate_node_memory(internal->left.get()) +
+                   calculate_node_memory(internal->right.get());
+        }
+    }
+    
+public:
     // Get root node for visualization purposes
     Node* getRoot() const { return root.get(); }
     
@@ -369,6 +392,33 @@ public:
     // Check if tree is empty
     bool empty() const override { return size_ == 0; }
     
+    // Calculate memory usage of the tree
+    size_t memory_usage() const override {
+        return calculate_node_memory_rangetree(root.get()) + sizeof(*this);
+    }
+    
+private:
+    // Helper function to calculate memory usage of nodes for RangeTree
+    size_t calculate_node_memory_rangetree(Node* node) const {
+        if (!node) return 0;
+        
+        if (node->is_leaf()) {
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            return sizeof(LeafNode);
+        } else {
+            InternalNode* internal = static_cast<InternalNode*>(node);
+            size_t memory = sizeof(InternalNode);
+            memory += calculate_node_memory_rangetree(internal->left.get());
+            memory += calculate_node_memory_rangetree(internal->right.get());
+            // Add memory for associated structure
+            if (internal->assoc) {
+                memory += internal->assoc->memory_usage();
+            }
+            return memory;
+        }
+    }
+    
+public:
     // Get root node for visualization purposes
     Node* getRoot() const { return root.get(); }
 };
@@ -378,6 +428,7 @@ template<int D>
 class AssociatedStructure {
 public:
     virtual ~AssociatedStructure() = default;
+    virtual size_t memory_usage() const = 0;
 };
 
 // CascadeArray - A cascade array is an array of points sorted by one dimension
@@ -496,6 +547,11 @@ public:
             }
         }
         return result;
+    }
+    
+    // Calculate memory usage of the cascade array
+    size_t memory_usage() const override {
+        return sizeof(*this) + elements.size() * sizeof(Element);
     }
 };
 
@@ -809,6 +865,33 @@ public:
     // Check if tree is empty
     bool empty() const override { return size_ == 0; }
     
+    // Calculate memory usage of the tree
+    size_t memory_usage() const override {
+        return calculate_node_memory_layered(root.get()) + sizeof(*this);
+    }
+    
+private:
+    // Helper function to calculate memory usage of nodes for LayeredRangeTree
+    size_t calculate_node_memory_layered(Node* node) const {
+        if (!node) return 0;
+        
+        if (node->is_leaf()) {
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            return sizeof(LeafNode);
+        } else {
+            InternalNode* internal = static_cast<InternalNode*>(node);
+            size_t memory = sizeof(InternalNode);
+            memory += calculate_node_memory_layered(internal->left.get());
+            memory += calculate_node_memory_layered(internal->right.get());
+            // Add memory for associated structure
+            if (internal->assoc) {
+                memory += internal->assoc->memory_usage();
+            }
+            return memory;
+        }
+    }
+    
+public:
     // Get root node for visualization purposes
     Node* getRoot() const { return root.get(); }
 };
