@@ -303,6 +303,20 @@ private:
         return false;
     }
 
+    // Helper to report all the values in a subtree
+    void report_tree(Node* node, std::vector<Point<D>>& result) const {
+        if (!node) return;
+        
+        if (node->is_leaf()) {
+            LeafNode* leaf = static_cast<LeafNode*>(node);
+            result.push_back(leaf->point);
+        } else {
+            InternalNode* internal = static_cast<InternalNode*>(node);
+            report_tree(internal->left.get(), result);
+            report_tree(internal->right.get(), result);
+        }
+    }
+
     // Helper to search in the associated structure 
     void search_assoc(Node* subtree, const Iso_box<D>& range, std::vector<Point<D>>& result) const {
         if (!subtree) return;
@@ -313,8 +327,8 @@ private:
                 auto assoc_results = subtree_internal->assoc->range_search(range);
                 result.insert(result.end(), assoc_results.begin(), assoc_results.end());
             } else {
-                // Last dimension, search directly in subtree
-                range_search_helper(subtree, range, result);
+                // Last dimension, report all nodes in this subtree
+                report_tree(subtree, result);
             }
         }
     }
@@ -396,6 +410,9 @@ public:
     size_t memory_usage() const override {
         return calculate_node_memory_rangetree(root.get()) + sizeof(*this);
     }
+
+    // Get root node for visualization purposes
+    Node* getRoot() const { return root.get(); }
     
 private:
     // Helper function to calculate memory usage of nodes for RangeTree
@@ -417,10 +434,6 @@ private:
             return memory;
         }
     }
-    
-public:
-    // Get root node for visualization purposes
-    Node* getRoot() const { return root.get(); }
 };
 
 // Base class for associated structures
@@ -457,41 +470,34 @@ public:
         elements.reserve(left_array->elements.size() + right_array->elements.size());
 
         size_t i = 0, j = 0;
+        size_t p_i = 0, p_j = 0;
         while (i < left_array->elements.size() && j < right_array->elements.size()) {
             if (left_array->elements[i].point.cartesian(D - 1) < right_array->elements[j].point.cartesian(D - 1)) {
                 Element new_elem(left_array->elements[i].point);
                 
                 // Update pointers
-                size_t k = 1;
-                while ((i + k) < left_array->elements.size() && 
-                       left_array->elements[i].point.cartesian(D - 1) == left_array->elements[i + k].point.cartesian(D - 1)) {
-                    ++k;
-                }
-                if ((i + k) < left_array->elements.size()) {
-                    new_elem.left = i + k;
-                }
-
-                new_elem.right = j;
+                new_elem.left = p_i;
+                new_elem.right = p_j;
 
                 elements.push_back(std::move(new_elem));
                 ++i;
+                // If consecutive points have same coordinate in this dimension, keep the pointer to the first one
+                if (left_array->elements[i].point.cartesian(D - 1) != left_array->elements[i - 1].point.cartesian(D - 1)) {
+                    p_i = i;
+                }
             } else {
                 Element new_elem(right_array->elements[j].point);
 
                 // Update pointers
-                size_t k = 1;
-                while ((j + k) < right_array->elements.size() && 
-                       right_array->elements[j].point.cartesian(D - 1) == right_array->elements[j + k].point.cartesian(D - 1)) {
-                    ++k;
-                }
-                new_elem.left = i;
-
-                if ((j + k) < right_array->elements.size()) {
-                    new_elem.right = j + k;
-                }
+                new_elem.left = p_i;
+                new_elem.right = p_j;
 
                 elements.push_back(std::move(new_elem));
                 ++j;
+                // If consecutive points have same coordinate in this dimension, keep the pointer to the first one
+                if (right_array->elements[j].point.cartesian(D - 1) != right_array->elements[j - 1].point.cartesian(D - 1)) {
+                    p_j = j;
+                }
             }
         }
         
@@ -499,47 +505,41 @@ public:
         while (i < left_array->elements.size()) {
             Element new_elem(left_array->elements[i].point);
 
-            size_t k = 1;
-            while ((i + k) < left_array->elements.size() && 
-                   left_array->elements[i].point.cartesian(D - 1) == left_array->elements[i + k].point.cartesian(D - 1)) {
-                ++k;
-            }
+            // Update pointers
+            new_elem.left = p_i;
 
-            if ((i + k) < left_array->elements.size()) {
-                new_elem.left = i + k;
-            }
-            new_elem.right = j;
             elements.push_back(std::move(new_elem));
             ++i;
+            // If consecutive points have same coordinate in this dimension, keep the pointer to the first one
+            if (i < left_array->elements.size() && left_array->elements[i].point.cartesian(D - 1) != left_array->elements[i - 1].point.cartesian(D - 1)) {
+                p_i = i;
+            }
         }
         
         // Handle remaining elements from right child array
         while (j < right_array->elements.size()) {
             Element new_elem(right_array->elements[j].point);
 
-            size_t k = 1;
-            while ((j + k) < right_array->elements.size() && 
-                   right_array->elements[j].point.cartesian(D - 1) == right_array->elements[j + k].point.cartesian(D - 1)) {
-                ++k;
-            }
-
-            new_elem.left = i;
-            if ((j + k) < right_array->elements.size()) {
-                new_elem.right = j + k;
-            }
+            // Update pointers
+            new_elem.right = p_j;
+            
             elements.push_back(std::move(new_elem));
             ++j;
+            // If consecutive points have same coordinate in this dimension, keep the pointer to the first one
+            if (j < right_array->elements.size() && right_array->elements[j].point.cartesian(D - 1) != right_array->elements[j - 1].point.cartesian(D - 1)) {
+                p_j = j;
+            }
         }
     }
 
-    // Returns pointer to the smallest element grater that value
+    // Returns pointer to the smallest element greater or equal that value
     // If none found, returns nullptr
-    std::optional<size_t> find_smallest_greater(typename Kernel<D>::FT value, int dim = D-1) {
+    std::optional<size_t> find_smallest_greater_or_equal(typename Kernel<D>::FT value, int dim = D-1) {
         int left = 0, right = static_cast<int>(elements.size());
         std::optional<size_t> result = std::nullopt;
         while (left < right) {
             int mid = left + (right - left) / 2;
-            if (elements[mid].point.cartesian(dim) > value) {
+            if (elements[mid].point.cartesian(dim) >= value) {
                 result = mid;
                 right = mid;
             } else {
@@ -744,10 +744,7 @@ private:
                 size_t i = cascade_pointer.value();
                 auto last_dim_max = ::max_coord<D>(range, D - 1);
                 while (i < cascade_array->elements.size() && cascade_array->elements[i].point.cartesian(D - 1) <= last_dim_max) {
-                    // TODO: id this if necessary?
-                    if (::is_point_in_range<D>(cascade_array->elements[i].point, range)) {
-                        result.push_back(cascade_array->elements[i].point);
-                    }
+                    result.push_back(cascade_array->elements[i].point);
                     ++i;
                 }
             }
@@ -802,38 +799,38 @@ private:
         if (dim == D - 2) {
             CascadeArray<D>* cascade_array = static_cast<CascadeArray<D>*>(internal->assoc.get());
             auto last_dim_min = ::min_coord<D>(range, D - 1);
-            cascade_pointer = cascade_array->find_smallest_greater(last_dim_min);
+            cascade_pointer = cascade_array->find_smallest_greater_or_equal(last_dim_min);
         }
         
         // Follow the path to min_val
         Node* v = internal->left.get();
-        cascade_pointer = get_pointer_left(internal, cascade_pointer); // NEW
+        std::optional<size_t> cascade_pointer_v = get_pointer_left(internal, cascade_pointer); // NEW
         while (v && !v->is_leaf()) {
             InternalNode* v_internal = static_cast<InternalNode*>(v);
             if (min_val <= v_internal->split_value) {
-                search_assoc(v_internal->right.get(), cascade_pointer, range, result);
+                search_assoc(v_internal->right.get(), get_pointer_right(v_internal, cascade_pointer_v), range, result);
                 v = v_internal->left.get();
-                cascade_pointer = get_pointer_left(internal, cascade_pointer); // NEW
+                cascade_pointer_v = get_pointer_left(v_internal, cascade_pointer_v); // NEW
             } else {
                 v = v_internal->right.get();
-                cascade_pointer = get_pointer_right(internal, cascade_pointer); // NEW
+                cascade_pointer_v = get_pointer_right(v_internal, cascade_pointer_v); // NEW
             }
         }
         check_and_report_leaf(v, range, result);
 
         // Follow the path to max_val
         v = internal->right.get();
-        cascade_pointer = get_pointer_right(internal, cascade_pointer); // NEW
+        cascade_pointer_v = get_pointer_right(internal, cascade_pointer); // NEW
         while (v && !v->is_leaf()) {
             InternalNode* v_internal = static_cast<InternalNode*>(v);
             if (max_val >= v_internal->split_value) {
                 // Call the query on associated structure of left child
-                search_assoc(v_internal->left.get(), cascade_pointer, range, result);
+                search_assoc(v_internal->left.get(), get_pointer_left(v_internal, cascade_pointer_v), range, result);
                 v = v_internal->right.get();
-                cascade_pointer = get_pointer_right(internal, cascade_pointer); // NEW
+                cascade_pointer_v = get_pointer_right(v_internal, cascade_pointer_v); // NEW
             } else {
                 v = v_internal->left.get();
-                cascade_pointer = get_pointer_left(internal, cascade_pointer); // NEW
+                cascade_pointer_v = get_pointer_left(v_internal, cascade_pointer_v); // NEW
             }
         }
         check_and_report_leaf(v, range, result);
@@ -869,6 +866,9 @@ public:
     size_t memory_usage() const override {
         return calculate_node_memory_layered(root.get()) + sizeof(*this);
     }
+
+    // Get root node for visualization purposes
+    Node* getRoot() const { return root.get(); }
     
 private:
     // Helper function to calculate memory usage of nodes for LayeredRangeTree
@@ -890,8 +890,4 @@ private:
             return memory;
         }
     }
-    
-public:
-    // Get root node for visualization purposes
-    Node* getRoot() const { return root.get(); }
 };
