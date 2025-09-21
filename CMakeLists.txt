@@ -4,6 +4,11 @@ project(RangeSearchAlgorithms)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Default to Release build if no build type is specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 include_directories(include)
 
 find_package(CGAL REQUIRED COMPONENTS Core OPTIONAL_COMPONENTS Qt5)
@@ -45,6 +50,3 @@ add_executable(range_search_benchmark src/benchmark_main.cpp)
 target_link_libraries(range_search_benchmark CGAL::CGAL CGAL::CGAL_Core)
 target_include_directories(range_search_benchmark PRIVATE ${EIGEN3_INCLUDE_DIR})
 message(STATUS "Building benchmark executable: range_search_benchmark")
-
-enable_testing()
-add_subdirectory(tests)

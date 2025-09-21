@@ -24,3 +24,6 @@ Thumbs.db
 # Other
 *.user
 *.out
+
+# Plots images
+/benchmark_results/*.png

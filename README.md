@@ -14,8 +14,8 @@ This project implements and compares different range searching algorithms in C++
   - `benchmark_main.cpp`: Benchmark tool entry point
   - `visualization.cpp/h`: Qt visualization components
 - `include/`: Header files for algorithms and geometry
-- `tests/`: Unit and performance tests
 - `docs/`: Documentation
+- `benchmark_results/`: Generated benchmark data and plots
 
 ## Build
 
@@ -43,14 +43,19 @@ This creates two executables:
 
 ### Benchmark Tool
 ```bash
-# Run all benchmarks
+# Run benchmarks for different algorithms and dimensions
 ./range_search_benchmark
-
-# Run specific benchmarks
-./range_search_benchmark --construction  # Tree construction only
-./range_search_benchmark --queries       # Query performance only
-./range_search_benchmark --help          # Show options
 ```
+
+The benchmark tool tests:
+- Construction time performance
+- Query time performance  
+- Memory usage analysis
+- Multiple dimensions (2D to 6D)
+- Different data distributions (uniform, gaussian, clustered)
+- KD-Tree and Range Tree algorithms
+
+Some results are saved to CSV files in the `benchmark_results/` directory.
 
 ## Dependencies
 
@@ -60,6 +65,4 @@ This creates two executables:
 ## Algorithms
 - KD-Tree
 - Range Tree
-
-## Contributing
-Feel free to open issues or submit pull requests.
+- Layered Range Tree
