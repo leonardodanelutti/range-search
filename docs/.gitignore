@@ -1,0 +1,14 @@
+# Typst generated files
+*.pdf
+**/target/
+**/.typst-cache/
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
