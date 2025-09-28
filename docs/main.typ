@@ -6,7 +6,7 @@
   title: [ORTHOGONAL RANGE SEARCH],
   authors: (
     (
-      name: "Danelutti leonardo",
+      name: "Leonardo Danelutti",
       organization: [Università di Udine],
       email: "danelutti.leonardo@spes.uniud.it",
     ),
@@ -108,11 +108,11 @@ Per ogni nodo $v$ interno dell'albero, chiamiamo $"region"(v)$ il rettangolo, ch
 Durante la ricerca si possono incontrare tre tipi di nodi $v$:
 1. nodi in cui $"region"(v)$ non interseca la regione di query: in questo caso non si esplorano i sottoalberi radicati in $v$. (nodi bianchi nella @kd-tree-query)
 2. nodi in cui $"region"(v)$ è completamente contenuta nella regione di query. La complessità per riportare tutti i punti all'interno del sottoalbero radicato in $v$ è lineare nel numero dei nodi dell'albero. La complessità di tutte le chiamate su questi nodi è quindi $O(k)$. (nodi grigio scuri nella @kd-tree-query)
-3. nodi in cui $"region"(v)$ è parzialmente contenuta nella regione di query. Ogni nodo di questo tipo corrisponde quindi ad una regione intersecata dal bordo della regione di query. (nodi grigio chiarii nella @kd-tree-query)
+3. nodi in cui $"region"(v)$ è parzialmente contenuta nella regione di query. Ogni nodo di questo tipo corrisponde quindi ad una regione intersecata dal bordo della regione di query. (nodi grigio chiari nella @kd-tree-query)
 
 Per trovare un limite superiore al numero di nodi del terzo tipo possiamo contare il numero di regioni intersecate da una retta parallela ad un asse (iperpiani nel caso di dimensione maggiori di due), questo corrisponde al caso pessimo dove il bordo della regione di query interseca il maggior numero di regioni. Chiamiamo questo numero $Q(n)$.
 Per calcolare $Q(n)$ costruiamo l'equazione di ricorsione sui nodi che dividono il piano (iperspazio) nella stessa dimensione.
-Partendo dalla radice suddividiamo il piano (iperspazio) in nelle regioni associate ai nodi fino a profondità $d$, così da poter arrivare ad un nodo con la stessa dimensione, si avranno quindi $2^d$ regioni. Dato che le linee di split sono perpendicolari tra loro $l$ attraversa esattamente $2^(d-1)$ di queste regioni. Si ha quindi che:
+Partendo dalla radice suddividiamo il piano (iperspazio) nelle regioni associate ai nodi fino a profondità $d$, così da poter arrivare ad un nodo con la stessa dimensione, si avranno quindi $2^d$ regioni. Dato che le linee di split sono perpendicolari tra loro $l$ attraversa esattamente $2^(d-1)$ di queste regioni. Si ha quindi che:
 
 $ Q(n) := cases(
   O(1) &"  se" n = 1,
@@ -252,7 +252,7 @@ $
 \
 
 
-La riccorrenza ha soluzione $T(n, d) = O(log^d n)$. Aggiungendo il costo di riportare i $k$ punti trovati si ottiene la complessità finale:
+La ricorrenza ha soluzione $T(n, d) = O(log^d n)$. Aggiungendo il costo di riportare i $k$ punti trovati si ottiene la complessità finale:
 
 $ O(log^d n + k) $
 
@@ -315,7 +315,7 @@ Utilizzando una tecnica chiamata fractional cascading è possibile ridurre il te
 )
 
 
-Si noti come l'algoritmo di costruzione del layered range tree è identico a quello del range tree, con la differenza che nell'ultima dimensione viene costruita la nova struttura dati invece di un albero di ricerca bilanciato. La costruzione dell'array associato ad nodo è il merge delle due strutture associate dei figli, tenendo inoltre traccia della posizione dei puntatori al momento della creazione di un elemento (Il codice riportato non tiene conto di punti con la stessa coordinata, situazione facilmente risolvibile).
+Si noti come l'algoritmo di costruzione del layered range tree è identico a quello del range tree, con la differenza che nell'ultima dimensione viene costruita la nuova struttura dati invece di un albero di ricerca bilanciato. La costruzione dell'array associato ad un nodo è il merge delle due strutture associate dei figli, tenendo inoltre traccia della posizione dei puntatori al momento della creazione di un elemento (Il codice riportato non tiene conto di punti con la stessa coordinata, situazione facilmente risolvibile).
 
 La costruzione dell'array associato richiede $O(n)$ tempo, l'equazione di ricorrenza rimane quindi invariata, se non per il caso base:
 
@@ -333,7 +333,7 @@ La complessità di costruzione del layered range tree rimane $O(n log^(d-1) n)$ 
 
 == Query in un Layered Range Tree
 
-L'algoritmo per eseguire una query ortogonale in un layered range tree è simile a quello del range tree fino alla penultima dimensione. Quando la si raggiunge quando viene trovato il nodo di split di esegue un ricerca binaria nell'array associato per trovare il primo elemento che è maggiore o uguale a $x_d$, quindi proseguendo nella ricerca nell'albero si seguono contemporaneamente i puntatori nell'array associato ad ogni nodo. Nel momento in cui si visita un nodo il cui sottoalbero è completamente contenuto nella regione di query, si riportano tutti gli elementi nell'array associato a partire dalla posizione puntata dal puntatore fino al più grande elemento che è minore o uguale a $x'_d$.
+L'algoritmo per eseguire una query ortogonale in un layered range tree è simile a quello del range tree fino alla penultima dimensione. Quando la si raggiunge, viene trovato il nodo di split e si esegue una ricerca binaria nell'array associato per trovare il primo elemento che è maggiore o uguale a $x_d$, quindi proseguendo nella ricerca nell'albero si seguono contemporaneamente i puntatori nell'array associato ad ogni nodo. Nel momento in cui si visita un nodo il cui sottoalbero è completamente contenuto nella regione di query, si riportano tutti gli elementi nell'array associato a partire dalla posizione puntata dal puntatore fino al più grande elemento che è minore o uguale a $x'_d$.
 
 
 #figure(
@@ -358,7 +358,7 @@ L'algoritmo per eseguire una query ortogonale in un layered range tree è simile
           + \// Il sottoalbero destro è completamente contenuto nella regione di query
           + *if* dim == d - 2:
             + *while* pos < |v.right.assoc| *and* v.right.assoc[pos].point.coord[d-1] <= range.max[d-1]:
-              + abbiamo aggiungi v.right.assoc[pos].point a results
+              + aggiungi v.right.assoc[pos].point a results
               + pos += 1
           + *else*:
             + LRT-RANGE-SEARCH(v.right.assoc, range, results)
