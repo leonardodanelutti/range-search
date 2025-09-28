@@ -25,12 +25,12 @@ La ricerca ortogonale (o di intervalli rettangolari) è il problema di trovare t
   caption: [Esempio di query ortogonale in un database con due attributi: data di nascita e salario.]
 )
 
+
+
 = Similarità con gli Alberi Binari di Ricerca
 Per comprendere le strutture dati per la ricerca ortogonale, è utile partire dal caso più semplice: la ricerca di intervallo unidimensionale. Dato un insieme di valori numerici e un intervallo $[a, b]$, vogliamo trovare tutti i valori che cadono nell'intervallo.
 
-Un albero binario di ricerca bilanciato risolve questo problema in modo elegante: per trovare tutti i valori in $[a, b]$, si individua il nodo $v$ che rappresenta il "lowest common ancestor" dei valori $a$ e $b$ ($v_"split"$ nella @bst-range-search). Da questo punto, si esplorano tutti i sottoalberi che intersecano l'intervallo: nel sottoalbero sinistro si cercano i valori $>= a$, nel sottoalbero destro quelli $<= b$. Il tempo di query risulta $O(log n + k)$ dove $k$ è il numero di elementi trovati.
-
-Questo approccio funziona perfettamente per una dimensione perché ogni nodo dell'albero definisce naturalmente una partizione dello spazio: tutto ciò che è "a sinistra" ha valori minori, tutto ciò che è "a destra" ha valori maggiori. La query di intervallo può quindi essere decomposta in una serie di ricerche puntuali e attraversamenti di sottoalberi.
+Un albero binario di ricerca bilanciato risolve questo problema in modo elegante: per trovare tutti i valori in $[a, b]$, si individua il nodo $v$ che rappresenta il "lowest common ancestor" dei valori $a$ e $b$ ($v_"split"$ nella @bst-range-search). Da questo punto, si esplorano tutti i sottoalberi che intersecano l'intervallo: nel sottoalbero sinistro si cercano i valori $>= a$, nel sottoalbero destro quelli $<= b$. Il tempo di query risulta $O(log n + k)$ dove $k$ è il numero di elementi trovati, dato che la ricerca dei nodi $mu$ e $mu'$ richiede $O(log n)$ e la visita dei sottoalberi che contengono i valori nell'intervallo richiede tempo lineare nel numero di nodi riportati.
 
 #figure(
   image("imgs/BSTRangeSearch.png", width: 50%),
@@ -38,14 +38,14 @@ Questo approccio funziona perfettamente per una dimensione perché ogni nodo del
 ) <bst-range-search>
 
 = KD-Tree
-Il KD-Tree rappresenta la generalizzazione più diretta e intuitiva degli alberi binari di ricerca al caso multi-dimensionale. L'idea è semplice: se nel caso unidimensionale partizioniamo lo spazio rispetto a un singolo valore di coordinate, nel caso multi-dimensionale possiamo partizionare in modo alternato rispetto alle diverse coordinate dei punti.
+Il KD-Tree rappresenta la generalizzazione più diretta e intuitiva degli alberi binari di ricerca al caso multi-dimensionale. L'idea è semplice: se nel caso unidimensionale partizioniamo lo spazio rispetto ad una singola dimensione, nel caso multi-dimensionale possiamo partizionare lo spazio prima rispetto ad una posizione, poi ad un'altra, e così via, ciclicamente.
 
 Un kd-tree (k-dimensional tree) è una struttura dati binaria che suddivide ricorsivamente lo spazio alternando dimensioni di split. In 2D, ad ogni nodo interno si seleziona una linea verticale (split su $x$) o orizzontale (split su $y$) in modo alternato ai livelli. Questo approccio mantiene la semplicità concettuale degli alberi binari: ogni nodo divide ancora lo spazio in due parti, ma la dimensione su cui avviene la divisione cambia ciclicamente.
 
 #figure(
   image("imgs/KDTreeConstruction.png", width: 100%),
   caption: [Esempio di KD-Tree in 2D con partizioni alternate su $x$ e $y$.]
-)
+) <kd-tree-construction>
 
 == Creazione di un KD-Tree
 
@@ -103,14 +103,14 @@ Per eseguire una query ortogonale con un kd-tree, si procede in modo simile alla
   [La complessità della query in un kd-tree è $O(n^(1-1/d) + k)$, dove $d$ è la dimensione dello spazio e $k$ il numero di punti riportati.]
 )
 
-Per ogni nodo $v$ interno dell'albero, chiamiamo $"region"(v)$ il rettangolo, che può essere illimitato in una o più direzioni, delimitato dalle line di split degli antenati di $v$. Se $r$ è la radice dell'albero, allora $"region"(r) = R^d$.
+Per ogni nodo $v$ interno dell'albero, chiamiamo $"region"(v)$ il rettangolo, che può essere illimitato in una o più direzioni, delimitato dalle line di split degli antenati di $v$. Se $r$ è la radice dell'albero, allora $"region"(r) = R^d$. Ad esempio nella @kd-tree-construction, $"region"(l_4)$ è la regione del piano sotto a la linea $l_2$ (in quanto $l_4$ si trova nel sottoalbero sinistro di $l_2$) e a sinistra di $l_1$ (in quanto $l_4$ si trova nel sottoalbero sinistro di $l_1$).
 
 Durante la ricerca si possono incontrare tre tipi di nodi $v$:
 1. nodi in cui $"region"(v)$ non interseca la regione di query: in questo caso non si esplorano i sottoalberi radicati in $v$. (nodi bianchi nella @kd-tree-query)
 2. nodi in cui $"region"(v)$ è completamente contenuta nella regione di query. La complessità per riportare tutti i punti all'interno del sottoalbero radicato in $v$ è lineare nel numero dei nodi dell'albero. La complessità di tutte le chiamate su questi nodi è quindi $O(k)$. (nodi grigio scuri nella @kd-tree-query)
 3. nodi in cui $"region"(v)$ è parzialmente contenuta nella regione di query. Ogni nodo di questo tipo corrisponde quindi ad una regione intersecata dal bordo della regione di query. (nodi grigio chiarii nella @kd-tree-query)
 
-Per trovare un limite superiore al numero di nodi del terzo tipo possiamo contare il numero di regioni intersecate da una retta parallela ad un asse (iperpiani nel caso di dimensione maggiori di due), questo corrisponde al caso pessimo dove la il bordo della regione di query interseca il maggior numero di regioni. Chiamiamo questo numero $Q(n)$.
+Per trovare un limite superiore al numero di nodi del terzo tipo possiamo contare il numero di regioni intersecate da una retta parallela ad un asse (iperpiani nel caso di dimensione maggiori di due), questo corrisponde al caso pessimo dove il bordo della regione di query interseca il maggior numero di regioni. Chiamiamo questo numero $Q(n)$.
 Per calcolare $Q(n)$ costruiamo l'equazione di ricorsione sui nodi che dividono il piano (iperspazio) nella stessa dimensione.
 Partendo dalla radice suddividiamo il piano (iperspazio) in nelle regioni associate ai nodi fino a profondità $d$, così da poter arrivare ad un nodo con la stessa dimensione, si avranno quindi $2^d$ regioni. Dato che le linee di split sono perpendicolari tra loro $l$ attraversa esattamente $2^(d-1)$ di queste regioni. Si ha quindi che:
 
@@ -128,21 +128,23 @@ $
 
 Che ha soluzione $Q(n) = O(n^(1-1/d))$.
 
-Il numero totale di nodi visitati è quindi $O(n^(1-1/d) + k)$.
+Il numero totale di nodi visitati è quindi $O(n^(1-1/d) + k)$. Si noti che questo è il caso peggiore, in pratica il numero di regioni che intersecano il bordo della regione di query è spesso molto più basso. Ad esempio se cerchiamo un singolo punto (cioè nel range $[x_1:x_1] times [y_1:y_1]$) il tempo di query diventa $O(log n)$.
 
 #figure(
-  image("imgs/KDQueryCompl.png", width: 35%),
-  caption: [Esempio, con d=2, in cui la retta verticale interseca le due regioni alla sinistra della radice]
+  kind: "figure",
+  supplement: [Figure],
+  table(
+    stroke: 0pt,
+    columns: 2,
+    image("imgs/KDQueryCompl1.png"),
+    image("imgs/KDQueryCompl2.png"),
+  ),
+  caption: [Esempio con d=2. Il piano è diviso in 4 regioni, la retta verticale (in rosso) interseca le due regioni alla sinistra della radice]
 )
-
-// TODO: aggiungere casi base nelle equazioni di ricorrenza
-
 
 = Range Tree
 
-// TODO: spiegare sottoinsiemi canonici
-
-Un range tree è un albero multi-livello che, rispetto ai kd-tree, consente query più veloci a costo di più spazio. Anche in questo caso la struttura è una generalizzazione degli alberi binari di ricerca, che in questo caso contiene informazione ridondante per velocizzare le query. Per il caso in due dimensioni viene costruito l'albero binario di ricerca sulla prima dimensione, ad ogni nodo interno $v$ (che corrisponde a un sottoinsieme canonico di punti $P(v)$) si associa una struttura di supporto: un albero di ricerca bilanciato sui valori di $y$ dei punti in $P(v)$. In sostanza ogni nodo interno contiene: il valore di split $x_med$, un puntatore al sottoalbero sinistro e destro, ed un puntatore alla radice di un associato (un albero di ricerca su $y$). Per più dimensioni si procede in modo analogo, costruendo ad ogni nodo un albero di ricerca sulla dimensione successiva.
+Un range tree è un albero multi-livello che, rispetto ai kd-tree, consente query più veloci a costo di più spazio. Anche in questo caso la struttura è una generalizzazione degli alberi binari di ricerca, che in questo caso contiene informazione ridondante per velocizzare le query. Per il caso in due dimensioni viene costruito l'albero binario di ricerca sulla prima dimensione, ad ogni nodo interno $v$ si associa una struttura di supporto: un albero di ricerca bilanciato sui valori di $y$ dei punti presenti nelle fogli dell'albero radicato in $v$. Ogni nodo interno contiene: il valore di split $x_med$, un puntatore al sottoalbero sinistro e destro, ed un puntatore alla radice di un associato (un albero di ricerca su $y$). Per più dimensioni si procede in modo analogo, costruendo ad ogni nodo un albero di ricerca sulla dimensione successiva.
 
 
 #table(
@@ -154,7 +156,7 @@ Un range tree è un albero multi-livello che, rispetto ai kd-tree, consente quer
   ),
   figure(
     image("imgs/RangeTreeAssoc.png", width: 70%),
-    caption: [Un Range Tree con dimesione maggiore di 2. Le strutture associate sono annidate.]
+    caption: [Un Range Tree con dimensione maggiore di 2. Le strutture associate sono annidate.]
   )
 )
 
@@ -243,7 +245,7 @@ $
 T(n, d) := cases(
   O(1) &"  se" n = 1,
   O(log n) &"  se" d = 1 "(Range query in un BST)",
-  O(log n) + 2T(n, d-1) &"  se" n > 1 and d > 1
+  O(log n) + O(log n) T(n, d-1) &"  se" n > 1 and d > 1
 )
 $
 
@@ -257,7 +259,7 @@ $ O(log^d n + k) $
 
 = Layered Range Tree
 
-Utilizzando una tecnica chiamata fractional cascading è possibile ridurre il tempo di query del range tree a $O(log^(d-1) n + k)$. Tuttavia, questa tecnica richiede una modifica della struttura dati associata nell'ultima dimensione. Invece di utilizzare un albero di ricerca bilanciato per memorizzare il sottoinsieme canonico di un nodo, si utilizza un array ordinato dei punti in quella dimensione. Inoltre per ogni elemento dell'array si tiene traccia di due puntatori (left e right) che indicano la posizione del primo elemento nell'array del figlio sinistro e destro che è maggiore o uguale all'elemento corrente. In questo modo, quando si esegue una ricerca binaria nell'array associato di un nodo, si possono seguire i puntatori per trovare rapidamente la posizione corrispondente negli array dei figli, evitando ricerche binarie ripetute.
+Utilizzando una tecnica chiamata fractional cascading è possibile ridurre il tempo di query del range tree a $O(log^(d-1) n + k)$. Questa tecnica richiede una modifica della struttura dati associata nell'ultima dimensione. Invece di utilizzare un albero di ricerca bilanciato per memorizzare il sottoinsieme canonico di un nodo, si utilizza un array ordinato dei punti in quella dimensione. Inoltre per ogni elemento dell'array si tiene traccia di due puntatori (left e right) che indicano la posizione del primo elemento nell'array del figlio sinistro e destro che è maggiore o uguale all'elemento corrente. In questo modo, quando si esegue una ricerca binaria nell'array associato di un nodo, si possono seguire i puntatori per trovare rapidamente la posizione corrispondente negli array dei figli, evitando ricerche binarie ripetute.
 
 #figure(
     image("imgs/RangeTree2D.png", width: 90%),
@@ -376,11 +378,11 @@ L'algoritmo per eseguire una query ortogonale in un layered range tree è simile
     ]
 )
 
-La ricerca binaria nell'array associato richiede $O(log n)$ tempo e viene eseguita solamente una volta, questa quindi non influisce nel calcolo della complessità in quanto la visita dei nodi occupa comunque O(log n) tempo. La ricerca nella struttura associata (della penultima dimensione) invece richiede solo il tempo necessario a riportare i punti trovati, eliminando così la ricerca all'interno dell'ultimo albero come avveniva nel range tree. La complessità della query diventa quindi:
+La ricerca binaria nell'array associato richiede $O(log n)$ tempo e viene eseguita solamente una volta, questa quindi non influisce nel calcolo della complessità in quanto la visita dei nodi occupa comunque O(log n) tempo. La ricerca nella struttura associata (della penultima dimensione) invece richiede solo il tempo necessario a riportare i punti trovati, eliminando così la ricerca all'interno dell'ultimo albero come avveniva nel range tree. Tenendo conto di questo la complessità della query diventa quindi:
 
 $O(log^(d-1) n + k)$.
 
-= Riassunto delle prestazioni delle strutture dati
+= Riassunto dei costi delle strutture dati
 
 #figure(
   table(
@@ -399,19 +401,30 @@ Nella libreria fornita, le strutture dati sono implementate con classi C++ gener
 
 `RangeTree`: definisce anch'esso `InternalNode` e `LeafNode`, dove ogni `InternalNode` ha `split_value`, `left` e `right`, più un puntatore `assoc` che fa riferimento ad un altro `RangeTree<D>` (per la dimensione successiva).
 
-`LayeredRangeTree`: simile al `RangeTree`, ma l'associato (`assoc`) è di tipo generico `AssociatedStructure<D>`. Quando `dim+2 < D`, `assoc` è un'altra `LayeredRangeTree` (per dimensioni residue); quando `dim+2 == D`, `assoc` è un `CascadeArray<D>`. Un cascade array è un vettore di elementi che memorizzano un punto e due indici opzionali `left` e `right` agli elementi corrispondenti nei figli.
+`LayeredRangeTree`: simile al `RangeTree`, ma l'associato (`assoc`) è di tipo generico `AssociatedStructure<D>`. Quando `dim+2 < D`, `assoc` è un'altro `LayeredRangeTree`; quando `dim+2 == D`, `assoc` è un `CascadeArray<D>`. Un cascade array è un vettore di elementi che memorizzano un punto e due indici opzionali `left` e `right` agli elementi corrispondenti nei figli.
 
-= Benchmark
+Inoltre è stata implementata una visualizzazione interattiva dei kd-tree in due dimensioni usando `Qt5`.
+
+#figure(
+  image("imgs/visualization.png", width: 90%),
+  caption: [Visualizzazione interattiva creata con Qt5 e CGAL di un kd-tree in 2D.]
+)
+
+== Benchmark
 
 Per valutare le prestazioni delle strutture dati implementate, sono stati condotti benchmark su insiemi di punti bidimensionali uniformemente distribuiti di varie dimensioni (da 10.000 a 1.000.000 di punti). Per ogni dimensione del dataset, sono stati misurati:
 - Tempo di costruzione (preprocessing)
 - Utilizzo di memoria
 - Tempo di query, come media su più query casuali con un numero costante di punti attesi nell'output
 
-Come atteso il kd-tree ha il tempo di costruzione più veloce ($O(n log n)$) e utilizza significativamente meno memoria ($O(n)$), ma il tempo di query è notevolmente più alto degli altri algoritmi. Il Layered range tree, rispetto al range tree:
+E' stato scelto di eseguire i benchmark con query che riportano un numero costante di punti per valutare meglio le differenze tra gli algoritmi, in quanto il tempo di query dipende linearmente dal numero di punti riportati.
+
+Il kd-tree ha il tempo di costruzione minore e utilizza significativamente meno memoria, ma il tempo di query è notevolmente più alto degli altri algoritmi. Questo non è detto che sia il risultato della complessità peggiore dell'algoritmo, infatti data la piccola ampiezza del range delle query il termine $O(sqrt(n))$ occupa minor tempo rispetto al termine $O(log n)$ per la ricerca all'interno dell'albero.
+
+Il Layered range tree, rispetto al range tree:
 - utilizza a meno memoria, in quanto la struttura associata nell'ultima dimensione non memorizza i valori di split
 - Ha un tempo di costruzione significativamente più basso, probabilmente dovuto al fatto che la costruzione dell'array associato è più veloce della costruzione di un albero di ricerca bilanciato
-- Ha un tempo di query più basso, in quanto non deve eseguire ricerche binarie nell'ultima dimensione
+- Ha un tempo di query più basso, in quanto non deve eseguire ricerche binarie nell'ultima dimensione ed il impiegato nel riportare tutti i punti di un sottoalbero è maggiore rispetto al tempo impiegato nel riportare i punti in un array disposti in modo contiguo in memoria.
 
 #figure(
   image("imgs/construction_time.png", width: 90%),
