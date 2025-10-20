@@ -14,6 +14,8 @@
   bibliography: bibliography("refs.bib"),
 )
 
+#set text(lang: "it")
+
 = Introduzione
 La ricerca ortogonale (o di intervalli rettangolari) è il problema di trovare tutti i punti di un insieme $P$ di dimensione fissa la cui posizione cade entro un intervallo di coordinate definito da un rettangolo (in dimensione 2) o un iperrettangolo (in dimensioni superiori). Un tipico esempio è una query su un database: ogni record diventa un punto con coordinate (data di nascita, salario, ecc.) e si cerca, ad esempio, "tutti i dipendenti nati fra il 1950 e il 1955 che guadagnano fra $3000 e $4000 al mese". In generale, dati $n$ punti in $R^d$ (uno per ciascun record con $d$ attributi), una query ortogonale restituisce tutti i punti che ricadono in un intervallo di coordinate del tipo $[x_1:x'_1] times [x_2:x'_2] times dots times[x_d:x'_d]$.
 #footnote[
@@ -53,7 +55,7 @@ Ogni nodo interno memorizza il valore di split e la dimensione associata, mentre
 
 #figure(
   kind: "algorithm",
-  supplement: [Algorithm],
+  supplement: [Algoritmo],
 
   pseudocode-list(booktabs: true, stroke:none, numbered-title: [Costruzione di un KD-Tree])[
   + *function* BUILD-KD-TREE(P, depth):
@@ -78,7 +80,7 @@ Per eseguire una query ortogonale con un kd-tree, si procede in modo simile alla
 
 #figure(
     kind: "algorithm",
-    supplement: [Algorithm],
+    supplement: [Algoritmo],
 
     pseudocode-list(booktabs: true, stroke:none, numbered-title: [Query in un KD-Tree])[
     + *function* KD-RANGE-SEARCH(v, range, results):
@@ -131,8 +133,7 @@ Che ha soluzione $Q(n) = O(n^(1-1/d))$.
 Il numero totale di nodi visitati è quindi $O(n^(1-1/d) + k)$. Si noti che questo è il caso peggiore, in pratica il numero di regioni che intersecano il bordo della regione di query è spesso molto più basso. Ad esempio se cerchiamo un singolo punto (cioè nel range $[x_1:x_1] times [y_1:y_1]$) il tempo di query diventa $O(log n)$.
 
 #figure(
-  kind: "figure",
-  supplement: [Figure],
+  kind: image,
   table(
     stroke: 0pt,
     columns: 2,
@@ -164,7 +165,7 @@ Un range tree è un albero multi-livello che, rispetto ai kd-tree, consente quer
 
 #figure(
   kind: "algorithm",
-  supplement: [Algorithm],
+  supplement: [Algoritmo],
 
   pseudocode-list(booktabs: true, stroke:none, numbered-title: [Costruzione di un Range Tree])[
   + *function* BUILD-RANGE-TREE(P, d):
@@ -206,7 +207,7 @@ L'idea della query in un range tree è simile a quella del caso unidimensionale,
 
 #figure(
   kind: "algorithm",
-  supplement: [Algorithm],
+  supplement: [Algoritmo],
 
   pseudocode-list(booktabs: true, stroke:none, numbered-title: [Query in un Range Tree])[
   + *function* RANGE-TREE-RANGE-SEARCH(v, range, results):
@@ -274,7 +275,7 @@ Utilizzando una tecnica chiamata fractional cascading è possibile ridurre il te
 
 #figure(
     kind: "algorithm",
-    supplement: [Algorithm],
+    supplement: [Algoritmo],
 
     pseudocode-list(booktabs: true, stroke:none, numbered-title: [Costruzione di un Layered Range Tree])[
     + *function* BUILD-LAYERED-RANGE-TREE(P, d):
@@ -338,7 +339,7 @@ L'algoritmo per eseguire una query ortogonale in un layered range tree è simile
 
 #figure(
   kind: "algorithm",
-  supplement: [Algorithm],
+  supplement: [Algoritmo],
 
   pseudocode-list(booktabs: true, stroke:none, numbered-title: [Query in un Layered Range Tree])[
   + *function* LRT-RANGE-SEARCH(v, range, results):

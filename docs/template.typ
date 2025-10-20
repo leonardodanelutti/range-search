@@ -193,20 +193,20 @@
 #let theorem(body, numbered: true) = figure(
   body,
   kind: "theorem",
-  supplement: [Theorem],
+  supplement: [Teorema],
   numbering: if numbered { n => counter(heading).display() + [#n] }
 )
 
 #let definition(body, numbered: true) = figure(
   body,
   kind: "theorem",
-  supplement: [Definition],
+  supplement: [Definizione],
   numbering: if numbered { n => counter(heading).display() + [#n] }
 )
 
 // And a function for a proof.
 #let proof(body) = block(spacing: 11.5pt, {
-  emph[Proof.]
+  emph[Dimostrazione.]
   [ ]
   body
   h(1fr)
